@@ -1,0 +1,17 @@
+{
+    "version": "0.1",
+    "__metadata__" : {
+        "license_url" : "https://phewascatalog.org/",
+        "licence" : "CC BY-NC 4.0",
+        "url" : "https://phewascatalog.org/"
+    },
+    "dumper" : {
+        "data_url" : "https://phewascatalog.org/files/phewas-catalog.csv.zip",
+        "uncompress" : true,
+        "release" : "version:get_release"
+    },
+    "uploader" : {
+        "parser" : "parser:load_data",
+        "on_duplicates" : "ignore"
+    }
+}
