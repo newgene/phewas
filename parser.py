@@ -4,7 +4,7 @@ from biothings_client import get_client
 import re
 
 from csv import DictReader
-from biothings.utils.dataload import dict_sweep, open_anyfile, unlist
+from biothings.utils.dataload import dict_sweep, open_anyfile, unlist, value_convert_to_number
 
 
 def batch_query_hgvs_from_rsid(rsid_list):
@@ -41,34 +41,37 @@ def load_data(data_folder):
 
         results = defaultdict(list)
         for row in reader:
-            variant = {"phewas": {"associations": {"phenotype": {}}}}
+            variant = {"associations": {"phenotype": {}}, "variant": {}}
             assert re.match("^rs\d+$", row["snp"]) != None
-            variant["phewas"]["rsid"] = row["snp"]
-            variant["phewas"]["associations"]["phenotype"]["name"] = row["phewas phenotype"]
-            variant["phewas"]["associations"]["cases"] = row["cases"]
+            variant["variant"]["rsid"] = row["snp"]
+            variant["associations"]["phenotype"]["name"] = row["phewas phenotype"]
+            variant["associations"]["cases"] = row["cases"]
 
-            variant["phewas"]["associations"]["pval"] = row["p-value"]
-            variant["phewas"]["associations"]["odds-ratio"] = row["odds-ratio"]
-            variant["phewas"]["associations"]["phenotype"]["phewas_code"] = row["phewas code"]
-            variant["phewas"]["gene"] = row["gene_name"]
-            variant["phewas"]["gwas_associations"] = row["gwas-associations"].split(',')
+            variant["associations"]["pval"] = float(row["p-value"])
+            variant["associations"]["odds-ratio"] = row["odds-ratio"]
+            variant["associations"]["phenotype"]["phewas_code"] = row["phewas code"]
+            variant["variant"]["gene"] = row["gene_name"]
+            variant["variant"]["gwas_associations"] = row["gwas-associations"].split(',')
             pos_info = row["chromosome"].split(' ')
             if len(pos_info) == 2:
-                variant["phewas"]["chrom"], variant["phewas"]["pos"] = pos_info
+                variant["variant"]["chrom"], variant["variant"]["pos"] = pos_info
             else:
-                variant["phewas"]["chrom"] = pos_info[0]
-            results[variant["phewas"]["rsid"]].append(variant)
+                variant["variant"]["chrom"] = pos_info[0]
+            results[variant["variant"]["rsid"]].append(variant)
         # Merge duplications
         rsid_list = [_item for _item in results.keys()]
         hgvs_rsid_dict = batch_query_hgvs_from_rsid(rsid_list)
         for k, v in results.items():
             if k in hgvs_rsid_dict and hgvs_rsid_dict[k]:
                 if len(v) == 1:
-                    v[0]["_id"] = hgvs_rsid_dict[k]
-                    yield dict_sweep(unlist(value_convert_to_number(v[0], skipped_keys=['chrom'])), vals=[[], {}, None, '', 'NULL'])
+                    doc = {'_id': hgvs_rsid_dict[k],
+                           'phewas': v[0]["variant"]}
+                    doc["phewas"]["associations"] = v[0]["associations"]
+                    yield dict_sweep(unlist(value_convert_to_number(doc, skipped_keys=['chrom'])), vals=[[], {}, None, '', 'NULL'])
                 else:
-                    print(k, v)
+                    doc = {'_id': hgvs_rsid_dict[k],
+                           'phewas': v[0]["variant"]}
+                    doc["phewas"]["associations"] = []
                     for _item in v:
-                        doc = _item
-                        doc['_id'] = hgvs_rsid_dict[k]
-                        yield doc
+                        doc["phewas"]["associations"].append(_item["associations"])
+                    yield dict_sweep(unlist(value_convert_to_number(doc, skipped_keys=['chrom'])), vals=[[], {}, None, '', 'NULL'])
