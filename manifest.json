@@ -1,5 +1,6 @@
 {
     "version": "0.1",
+    "requires" : "biothings_client",
     "__metadata__" : {
         "license_url" : "https://phewascatalog.org/",
         "licence" : "CC BY-NC 4.0",
@@ -12,6 +13,6 @@
     },
     "uploader" : {
         "parser" : "parser:load_data",
-        "on_duplicates" : "ignore"
+        "on_duplicates" : "error"
     }
 }
